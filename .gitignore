@@ -1,0 +1,6 @@
+﻿################################################################################
+# この .gitignore ファイルは Microsoft(R) Visual Studio によって自動的に作成されました。
+################################################################################
+
+/src/SampleLog4net/SampleLog4net/bin/Debug/net6.0
+/src/SampleLog4net/SampleLog4net/obj
