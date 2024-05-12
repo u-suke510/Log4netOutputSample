@@ -56,6 +56,7 @@ namespace SampleLog4net
         /// <summary>
         /// コンストラクタ。
         /// </summary>
+        /// <param name="provider">サービスプロバイダー</param>
         /// <param name="logger">ロガー</param>
         public ServiceBase(ILogger logger)
         {

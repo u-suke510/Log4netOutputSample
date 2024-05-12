@@ -8,8 +8,12 @@ using SampleLog4net.Services;
 List<string> targets = null;
 // ロガー
 ILogger<Program> logger;
+// サービスコレクション
+IServiceCollection services;
 // サービスプロバイダー
 IServiceProvider provider;
+// Logging情報設定
+IConfigurationSection confLogging;
 
 // 初期化
 Setup();
@@ -47,20 +51,13 @@ void Setup()
         // 処理対象の取得
         targets = configuration.GetSection("Targets").Get<List<string>>();
     }
+    confLogging = configuration.GetSection("Logging");
 
     // サービスの生成
-    var services = new ServiceCollection();
-    services.AddLogging(builder => {
-        builder.AddConfiguration(configuration.GetSection("Logging"));
-        builder.AddConsole();
-        builder.AddLog4Net(new Log4NetProviderOptions("log4net.config"));
-    });
+    services = new ServiceCollection();
     services.AddSingleton<IB00Service, B00Service>();
-    provider = services.BuildServiceProvider();
-
-    // ロガーの生成
-    var loggerFactory = services.BuildServiceProvider().GetService<ILoggerFactory>();
-    logger = loggerFactory.CreateLogger<Program>();
+    services.AddSingleton<IB01Service, B01Service>();
+    services.AddSingleton<IB02Service, B02Service>();
 }
 
 /// <summary>
@@ -70,11 +67,51 @@ void Setup()
 /// <returns>サービスクラス</returns>
 IServiceBase getService(string target)
 {
+    setLogging(target);
     switch (target)
     {
         case "B00":
             return provider.GetService<IB00Service>();
+        case "B01":
+            return provider.GetService<IB01Service>();
+        case "B02":
+            return provider.GetService<IB02Service>();
         default:
             return null;
     }
+}
+
+/// <summary>
+/// ロガー情報を設定します。
+/// </summary>
+/// <param name="target">処理名</param>
+void setLogging(string target)
+{
+    services.AddLogging(builder => {
+        builder.ClearProviders();
+        builder.AddConfiguration(confLogging);
+        builder.AddConsole();
+        builder.AddLog4Net(createLogOptions(target));
+    });
+    provider = services.BuildServiceProvider();
+
+    // ロガーの生成
+    var loggerFactory = provider.GetService<ILoggerFactory>();
+    logger = loggerFactory.CreateLogger<Program>();
+}
+
+/// <summary>
+/// ロガーオプションを生成します。
+/// </summary>
+/// <param name="target">処理名</param>
+/// <returns>Log4netオプション</returns>
+Log4NetProviderOptions createLogOptions(string target)
+{
+    var result = new Log4NetProviderOptions();
+    result.PropertyOverrides.Add(new Microsoft.Extensions.Logging.Log4Net.AspNetCore.Entities.NodeInfo {
+        XPath = "log4net/appender/file",
+        Attributes = new Dictionary<string, string> { { "value", $"log4net/DebugLog.{target}" } }
+    });
+
+    return result;
 }
